@@ -1,6 +1,5 @@
 (function(window){
-
-  var WORKER_PATH = '/audiflux/public/wp-content/plugins/audiflux/javascript/recorderWorker.js';
+  var WORKER_PATH = plugin_path.worker;
 
   var Recorder = function(source, cfg){
     var config = cfg || {};
@@ -37,7 +36,6 @@
         }
       }
     }
-
     this.record = function(){
       recording = true;
     }

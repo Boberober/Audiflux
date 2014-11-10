@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: AudiFlux
+Plugin Name: AudioFlux
 Version: 0.1-alpha
-Description: PLUGIN DESCRIPTION HERE
-Author: Robin Björklund, Joel Besada
+Description: Tell your story, add quick and easy recordings to your posts for better accessibility. Big thanks to KnowIT, Aftonbladet for sponsoring the first alpha release of this plugin.
+Author: Robin Björklund
 */
 
 
@@ -43,11 +43,17 @@ if( !class_exists('Audioflux') ) {
     public function audioflux_admin_styles(){
         global $typenow;
 
+
+
         // Add style if current page is an allowed posttype
         if( in_array( $typenow, $this->screens ) ) {
-            wp_enqueue_style( 'audioflux_meta_box_styles', plugin_dir_url( __FILE__ ) . '/css/audioflux-meta-box.css' );
-            wp_enqueue_script( 'audioflux_recorder', plugin_dir_url( __FILE__ ) . '/javascript/recorder.js', array(), '1.0.0', true );
-            wp_enqueue_script( 'audioflux_javascript', plugin_dir_url( __FILE__ ) . '/javascript/main.js', array('audioflux_recorder'), '1.0.0', true );
+          
+            wp_register_script( 'audioflux_recorder', plugin_dir_url( __FILE__ ) . 'javascript/recorder.js', array(), '', true );
+            wp_localize_script( 'audioflux_recorder', 'plugin_path', array('worker' => plugin_dir_url( __FILE__ ) . 'javascript/recorderWorker.js' )); 
+
+            wp_enqueue_style( 'audioflux_meta_box_styles', plugin_dir_url( __FILE__ ) . 'css/audioflux-meta-box.css' );
+            wp_enqueue_script( 'audioflux_javascript', plugin_dir_url( __FILE__ ) . 'javascript/main.js', array('audioflux_recorder'), '', true );
+            // wp_enqueue_script( 'audioflux_javascript');
         }
     }
     
@@ -69,25 +75,26 @@ if( !class_exists('Audioflux') ) {
        */
       $value = get_post_meta( $post->ID, 'audioflux_file', true );
 
-      // echo '<label for="audioflux_new_field">';
-      // _e( 'Description for this field', 'audioflux_textdomain' );
-      // echo '</label> ';
-
       ?>
-      <!-- <button id="audioflux-recorder" class="btn btn--record">Start Recording</button> -->
+      
       <button id="audioflux-recorder"><span class="mic icon"></span><span class="pause icon"><span></span></button>  
       <input type="hidden" name="audioflux_file" value="<?php echo $value; ?>">
+
       <div id="recordinglist">
       
       <?php if(isset($value) && !empty($value)) : ?>
+
         <audio controls>
           <source src="<?php echo $value; ?>" type="audio/mpeg">
           Your browser does not support this audio format.
         </audio>
+
         <a class="shortcode block" href="<?php echo $value ?>">Insert shortcode</a>
+
       </div>
       <?php
       endif;
+
     }
 
     /**
@@ -170,21 +177,22 @@ if( !class_exists('Audioflux') ) {
 
 
     function upload_audio_callback() {
-      // global $wpdb; // this is how you get access to the database
 
       $data = substr($_POST['data'], strpos($_POST['data'], ",") + 1);
 
-
       $filename = $_POST['filename'];
 
-      $decodedData = base64_decode($data);
+      $upload_url = wp_upload_dir();
 
-      $filepath = plugin_dir_path( __FILE__ ) . $filename;
+      $decodedData = base64_decode($data);
+      $filepath = $upload_url['basedir'] . '/' . basename(__DIR__) . '/' . $filename;
+      //$filepath = plugin_dir_path( __FILE__ ) . $filename;
       $fp = fopen($filepath, 'wb');
       fwrite($fp, $decodedData);
       fclose($fp);
 
-      echo json_encode(array('name' => plugins_url($filename, __FILE__ )));
+
+      echo json_encode(array('name' => $filepath));
 
       die(); // this is required to return a proper result
     }
